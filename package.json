@@ -1,0 +1,84 @@
+{
+  "name": "eth-dev-faucet",
+  "displayName": "Geth Dev Faucet",
+  "description": "Ethereum faucet for local development nodes with tree view interface",
+  "version": "0.0.1",
+  "publisher": "geth-dev-faucet",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smolgroot/geth-dev-faucet"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "ethereum",
+    "blockchain",
+    "faucet",
+    "geth",
+    "hardhat",
+    "web3",
+    "development"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ethFaucet.sendEth",
+        "title": "Send ETH"
+      },
+      {
+        "command": "ethFaucet.refresh", 
+        "title": "Refresh"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ethFaucet",
+          "title": "ETH Faucet",
+          "icon": "$(symbol-property)"
+        }
+      ]
+    },
+    "views": {
+      "ethFaucet": [
+        {
+          "id": "ethFaucet.connection",
+          "name": "Connection",
+          "when": "true"
+        },
+        {
+          "id": "ethFaucet.accounts",
+          "name": "Accounts",
+          "when": "true"
+        },
+        {
+          "id": "ethFaucet.faucet",
+          "name": "Faucet",
+          "when": "true"
+        },
+        {
+          "id": "ethFaucet.history",
+          "name": "Transaction History",
+          "when": "true"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "22.x",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0"
+  }
+}
