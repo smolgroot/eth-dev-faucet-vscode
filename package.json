@@ -1,9 +1,9 @@
 {
   "name": "eth-dev-faucet",
-  "displayName": "Geth Dev Faucet",
+  "displayName": "ETH Dev Faucet",
   "description": "Ethereum faucet for local development nodes (geth, hardhat, anvil)",
   "version": "0.1.0",
-  "publisher": "geth-dev-faucet",
+  "publisher": "smolgroot",
   "repository": {
     "type": "git",
     "url": "https://github.com/smolgroot/eth-dev-faucet-vscode"
