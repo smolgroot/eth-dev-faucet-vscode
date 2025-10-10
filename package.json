@@ -1,12 +1,12 @@
 {
   "name": "eth-dev-faucet",
   "displayName": "Geth Dev Faucet",
-  "description": "Ethereum faucet for local development nodes with tree view interface",
-  "version": "0.0.1",
+  "description": "Ethereum faucet for local development nodes (geth, hardhat, anvil)",
+  "version": "0.1.0",
   "publisher": "geth-dev-faucet",
   "repository": {
     "type": "git",
-    "url": "https://github.com/smolgroot/geth-dev-faucet"
+    "url": "https://github.com/smolgroot/eth-dev-faucet-vscode"
   },
   "engines": {
     "vscode": "^1.74.0"
@@ -28,11 +28,22 @@
     "commands": [
       {
         "command": "ethFaucet.sendEth",
-        "title": "Send ETH"
+        "title": "Send ETH",
+        "icon": "$(send)"
       },
       {
         "command": "ethFaucet.refresh", 
         "title": "Refresh"
+      },
+      {
+        "command": "ethFaucet.clearHistory",
+        "title": "Clear History",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ethFaucet.quickSend",
+        "title": "Quick Send 1 ETH",
+        "icon": "$(send)"
       }
     ],
     "viewsContainers": {
@@ -40,7 +51,7 @@
         {
           "id": "ethFaucet",
           "title": "ETH Faucet",
-          "icon": "$(symbol-property)"
+          "icon": "$(send)"
         }
       ]
     },
@@ -49,22 +60,47 @@
         {
           "id": "ethFaucet.connection",
           "name": "Connection",
-          "when": "true"
+          "when": "true", 
+          "icon": "$(debug-disconnect)"
         },
         {
           "id": "ethFaucet.accounts",
           "name": "Accounts",
-          "when": "true"
+          "when": "true",
+          "icon": "$(accounts-view-bar-icon)"
         },
         {
           "id": "ethFaucet.faucet",
           "name": "Faucet",
-          "when": "true"
+          "when": "true",
+          "icon": "$(send)"
         },
         {
           "id": "ethFaucet.history",
           "name": "Transaction History",
-          "when": "true"
+          "when": "true",
+          "icon": "$(history)"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "ethFaucet.sendEth",
+          "when": "view == ethFaucet.faucet",
+          "group": "navigation"
+        },
+        {
+          "command": "ethFaucet.clearHistory",
+          "when": "view == ethFaucet.history",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ethFaucet.quickSend",
+          "when": "view == ethFaucet.accounts && viewItem == usedAddress",
+          "group": "inline"
         }
       ]
     }

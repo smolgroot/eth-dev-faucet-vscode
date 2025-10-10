@@ -97,13 +97,13 @@ class ConnectionProvider {
     getChildren(element) {
         if (!element) {
             const items = [
-                new ConnectionItem(this.isConnected ? '✅ Connected' : '❌ Disconnected', this.isConnected ?
+                new ConnectionItem(this.isConnected ? 'Connected' : 'Disconnected', this.isConnected ?
                     `${this.networkName} (${this.chainId})` :
-                    'No connection to RPC', vscode.TreeItemCollapsibleState.None),
-                new ConnectionItem('RPC URL', this.rpcUrl, vscode.TreeItemCollapsibleState.None)
+                    'No connection to RPC', vscode.TreeItemCollapsibleState.None, this.isConnected ? 'plug' : 'debug-disconnect'),
+                new ConnectionItem('RPC URL', this.rpcUrl, vscode.TreeItemCollapsibleState.None, 'link')
             ];
             if (this.isConnected && this.chainId === 1337) {
-                items.push(new ConnectionItem('💡 Tip', 'Local dev node detected - ready for testing!', vscode.TreeItemCollapsibleState.None));
+                items.push(new ConnectionItem('Tip', 'Local dev node detected - ready for testing!', vscode.TreeItemCollapsibleState.None, 'lightbulb'));
             }
             return Promise.resolve(items);
         }
@@ -114,20 +114,29 @@ class ConnectionItem extends vscode.TreeItem {
     label;
     description;
     collapsibleState;
-    constructor(label, description, collapsibleState) {
+    constructor(label, description, collapsibleState, iconId) {
         super(label, collapsibleState);
         this.label = label;
         this.description = description;
         this.collapsibleState = collapsibleState;
         this.tooltip = `${this.label}: ${this.description}`;
         this.description = description;
+        if (iconId) {
+            this.iconPath = new vscode.ThemeIcon(iconId);
+        }
     }
 }
 // Tree Data Provider for Accounts
 class AccountsProvider {
+    context;
+    historyProvider;
     _onDidChangeTreeData = new vscode.EventEmitter();
     onDidChangeTreeData = this._onDidChangeTreeData.event;
     accounts = [];
+    constructor(context, historyProvider) {
+        this.context = context;
+        this.historyProvider = historyProvider;
+    }
     refresh() {
         this.loadAccounts();
         this._onDidChangeTreeData.fire();
@@ -158,7 +167,27 @@ class AccountsProvider {
     }
     getChildren(element) {
         if (!element) {
-            return Promise.resolve(this.accounts.map(account => new AccountItem(`${account.address.slice(0, 6)}...${account.address.slice(-4)}`, `${parseFloat(account.balance).toFixed(4)} ETH`, account.address, vscode.TreeItemCollapsibleState.None)));
+            const items = [];
+            // Add current accounts with balances
+            if (this.accounts.length > 0) {
+                items.push(new AccountItem('Local Accounts', '', '', vscode.TreeItemCollapsibleState.None, 'separator', 'server-environment'));
+                items.push(...this.accounts.map(account => new AccountItem(`${account.address.slice(0, 6)}...${account.address.slice(-4)}`, `${parseFloat(account.balance).toFixed(4)} ETH`, account.address, vscode.TreeItemCollapsibleState.None, 'localAccount', 'account')));
+            }
+            // Add used addresses from transaction history
+            const history = this.context.globalState.get('ethFaucet.history', []);
+            const usedAddresses = new Set();
+            history.forEach((tx) => {
+                if (tx.to && ethers_1.ethers.isAddress(tx.to)) {
+                    usedAddresses.add(tx.to);
+                }
+            });
+            if (usedAddresses.size > 0) {
+                items.push(new AccountItem('Recently Used', '', '', vscode.TreeItemCollapsibleState.None, 'separator', 'history'));
+                Array.from(usedAddresses).slice(0, 10).forEach(address => {
+                    items.push(new AccountItem(`${address.slice(0, 6)}...${address.slice(-4)}`, 'Quick Send Available', address, vscode.TreeItemCollapsibleState.None, 'usedAddress', 'send'));
+                });
+            }
+            return Promise.resolve(items);
         }
         return Promise.resolve([]);
     }
@@ -168,19 +197,27 @@ class AccountItem extends vscode.TreeItem {
     description;
     fullAddress;
     collapsibleState;
-    constructor(label, description, fullAddress, collapsibleState) {
+    contextValue;
+    constructor(label, description, fullAddress, collapsibleState, contextValue = 'account', iconId) {
         super(label, collapsibleState);
         this.label = label;
         this.description = description;
         this.fullAddress = fullAddress;
         this.collapsibleState = collapsibleState;
-        this.tooltip = `${this.fullAddress}\nBalance: ${this.description}`;
-        this.contextValue = 'account';
-        this.command = {
-            command: 'ethFaucet.copyAddress',
-            title: 'Copy Address',
-            arguments: [this.fullAddress]
-        };
+        this.contextValue = contextValue;
+        this.tooltip = this.fullAddress ? `${this.fullAddress}\n${this.description}` : this.description;
+        this.contextValue = contextValue;
+        if (iconId) {
+            this.iconPath = new vscode.ThemeIcon(iconId);
+        }
+        // Only add command for actual addresses, not separators
+        if (this.fullAddress && ethers_1.ethers.isAddress(this.fullAddress)) {
+            this.command = {
+                command: 'ethFaucet.copyAddress',
+                title: 'Copy Address',
+                arguments: [this.fullAddress]
+            };
+        }
     }
 }
 // Tree Data Provider for Faucet
@@ -195,24 +232,22 @@ class FaucetProvider {
             const config = vscode.workspace.getConfiguration('ethFaucet');
             const frequentAddresses = config.get('frequentAddresses', []);
             const items = [
-                new FaucetItem('💸 Send ETH', 'Click to send ETH to any address', vscode.TreeItemCollapsibleState.None, {
-                    command: 'ethFaucet.sendEth',
-                    title: 'Send ETH'
-                })
+                new FaucetItem('Amount Range', '0.1 - 10 ETH per transaction', vscode.TreeItemCollapsibleState.None, undefined, 'info', 'info'),
+                new FaucetItem('Target Network', 'Local development chains only', vscode.TreeItemCollapsibleState.None, undefined, 'info', 'symbol-network')
             ];
             if (frequentAddresses.length > 0) {
-                items.push(new FaucetItem('📋 Frequent Addresses', `${frequentAddresses.length} saved`, vscode.TreeItemCollapsibleState.Expanded));
+                items.push(new FaucetItem('Frequent Addresses', `${frequentAddresses.length} saved`, vscode.TreeItemCollapsibleState.Expanded, undefined, undefined, 'bookmark'));
             }
             return Promise.resolve(items);
         }
-        else if (element.label === '📋 Frequent Addresses') {
+        else if (element.label === 'Frequent Addresses') {
             const config = vscode.workspace.getConfiguration('ethFaucet');
             const frequentAddresses = config.get('frequentAddresses', []);
             return Promise.resolve(frequentAddresses.map(addr => new FaucetItem(addr.label || `${addr.address.slice(0, 6)}...${addr.address.slice(-4)}`, addr.address.slice(0, 6) + '...' + addr.address.slice(-4), vscode.TreeItemCollapsibleState.None, {
                 command: 'ethFaucet.quickSend',
                 title: 'Quick Send',
                 arguments: [addr.address]
-            }, 'recipient')));
+            }, 'recipient', 'account')));
         }
         return Promise.resolve([]);
     }
@@ -223,7 +258,7 @@ class FaucetItem extends vscode.TreeItem {
     collapsibleState;
     command;
     contextValue;
-    constructor(label, description, collapsibleState, command, contextValue) {
+    constructor(label, description, collapsibleState, command, contextValue, iconId) {
         super(label, collapsibleState);
         this.label = label;
         this.description = description;
@@ -233,6 +268,9 @@ class FaucetItem extends vscode.TreeItem {
         this.tooltip = this.description;
         this.command = command;
         this.contextValue = contextValue;
+        if (iconId) {
+            this.iconPath = new vscode.ThemeIcon(iconId);
+        }
     }
 }
 // Transaction History Provider
@@ -268,6 +306,13 @@ class HistoryProvider {
     saveHistory() {
         this.context.globalState.update('ethFaucet.history', this.transactions);
     }
+    clearHistory() {
+        this.transactions = [];
+        this.saveHistory();
+        this._onDidChangeTreeData.fire();
+        vscode.commands.executeCommand('setContext', 'ethFaucet.hasHistory', false);
+        vscode.window.showInformationMessage('Transaction history cleared');
+    }
     getTreeItem(element) {
         return element;
     }
@@ -276,7 +321,7 @@ class HistoryProvider {
             return Promise.resolve(this.transactions.map(tx => {
                 const date = new Date(tx.timestamp).toLocaleDateString();
                 const time = new Date(tx.timestamp).toLocaleTimeString();
-                return new HistoryItem(`${tx.status === 'success' ? '✅' : '❌'} ${tx.amount} ETH`, `to ${tx.to.slice(0, 6)}...${tx.to.slice(-4)} • ${date} ${time}`, tx.hash, vscode.TreeItemCollapsibleState.None);
+                return new HistoryItem(`${tx.amount} ETH`, `to ${tx.to.slice(0, 6)}...${tx.to.slice(-4)} • ${date} ${time}`, tx.hash, vscode.TreeItemCollapsibleState.None, tx.status === 'success' ? 'check' : 'error');
             }));
         }
         return Promise.resolve([]);
@@ -287,7 +332,7 @@ class HistoryItem extends vscode.TreeItem {
     description;
     txHash;
     collapsibleState;
-    constructor(label, description, txHash, collapsibleState) {
+    constructor(label, description, txHash, collapsibleState, iconId) {
         super(label, collapsibleState);
         this.label = label;
         this.description = description;
@@ -299,6 +344,9 @@ class HistoryItem extends vscode.TreeItem {
             title: 'Copy Transaction Hash',
             arguments: [this.txHash]
         };
+        if (iconId) {
+            this.iconPath = new vscode.ThemeIcon(iconId);
+        }
     }
 }
 // Auto-detect blockchain configuration files
@@ -344,9 +392,9 @@ function activate(context) {
     console.log('ETH Faucet extension is now active!');
     // Initialize providers
     const connectionProvider = new ConnectionProvider();
-    const accountsProvider = new AccountsProvider();
     const faucetProvider = new FaucetProvider();
     const historyProvider = new HistoryProvider(context);
+    const accountsProvider = new AccountsProvider(context, historyProvider);
     // Register tree data providers
     vscode.window.registerTreeDataProvider('ethFaucet.connection', connectionProvider);
     vscode.window.registerTreeDataProvider('ethFaucet.accounts', accountsProvider);
@@ -357,11 +405,40 @@ function activate(context) {
         vscode.commands.executeCommand('setContext', 'workspaceHasEthereumConfig', hasConfig);
         vscode.commands.executeCommand('setContext', 'ethFaucet.forceShow', true);
     });
+    // ENS Resolution Function
+    async function resolveENSName(ensName) {
+        // For ENS resolution, we MUST use mainnet - ENS contracts don't exist on local networks
+        const providers = [
+            'https://cloudflare-eth.com',
+            'https://eth.llamarpc.com',
+            'https://1rpc.io/eth'
+        ];
+        for (const providerUrl of providers) {
+            try {
+                const mainnetProvider = new ethers_1.ethers.JsonRpcProvider(providerUrl);
+                // Test connection and resolve ENS name
+                await mainnetProvider.getNetwork(); // Test connection
+                const resolved = await mainnetProvider.resolveName(ensName);
+                if (resolved) {
+                    return resolved;
+                }
+            }
+            catch (error) {
+                console.log(`ENS Provider ${providerUrl} failed, trying next...`, error);
+                continue;
+            }
+        }
+        throw new Error(`Could not resolve ENS name: ${ensName}. Make sure you have internet connectivity for ENS resolution.`);
+    }
     // Register commands
     const commands = [
         vscode.commands.registerCommand('ethFaucet.refresh', () => {
             connectionProvider.refresh();
             accountsProvider.refresh();
+        }),
+        vscode.commands.registerCommand('ethFaucet.clearHistory', () => {
+            historyProvider.clearHistory();
+            accountsProvider.refresh(); // Refresh accounts to update used addresses
         }),
         vscode.commands.registerCommand('ethFaucet.sendEth', async () => {
             const recipient = await vscode.window.showInputBox({
@@ -371,8 +448,33 @@ function activate(context) {
             if (!recipient) {
                 return;
             }
+            // Resolve ENS name first if needed
+            let targetAddress = recipient;
+            if (recipient.endsWith('.eth')) {
+                try {
+                    vscode.window.showInformationMessage(`Resolving ENS name: ${recipient}...`);
+                    targetAddress = await resolveENSName(recipient);
+                    // Validate that we got a proper address
+                    if (!ethers_1.ethers.isAddress(targetAddress)) {
+                        throw new Error(`ENS resolution returned invalid address: ${targetAddress}`);
+                    }
+                    vscode.window.showInformationMessage(`ENS resolved: ${recipient} → ${targetAddress.slice(0, 6)}...${targetAddress.slice(-4)}`);
+                    console.log(`DEBUG: ENS resolved ${recipient} to ${targetAddress}`);
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`ENS Resolution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    return;
+                }
+            }
+            else {
+                // Validate regular address
+                if (!ethers_1.ethers.isAddress(recipient)) {
+                    vscode.window.showErrorMessage('❌ Invalid Ethereum address format');
+                    return;
+                }
+            }
             const amount = await vscode.window.showInputBox({
-                prompt: 'Enter amount in ETH (0-10)',
+                prompt: `Enter amount in ETH (sending to ${recipient !== targetAddress ? recipient : targetAddress.slice(0, 6) + '...' + targetAddress.slice(-4)})`,
                 placeHolder: '1.0',
                 validateInput: (value) => {
                     const num = parseFloat(value);
@@ -385,14 +487,7 @@ function activate(context) {
             if (!amount) {
                 return;
             }
-            await sendEthTransaction(recipient, amount);
-        }),
-        vscode.commands.registerCommand('ethFaucet.quickSend', async (address) => {
-            if (!address) {
-                vscode.window.showErrorMessage('No address provided');
-                return;
-            }
-            await sendEthTransaction(address, '1.0');
+            await sendEthTransaction(targetAddress, amount, recipient);
         }),
         vscode.commands.registerCommand('ethFaucet.copyAddress', (address) => {
             vscode.env.clipboard.writeText(address);
@@ -400,36 +495,65 @@ function activate(context) {
         }),
         vscode.commands.registerCommand('ethFaucet.openSettings', () => {
             vscode.commands.executeCommand('workbench.action.openSettings', 'ethFaucet');
+        }),
+        vscode.commands.registerCommand('ethFaucet.clearHistory', () => {
+            historyProvider.clearHistory();
+            // Refresh accounts to update used addresses list
+            accountsProvider.refresh();
+        }),
+        vscode.commands.registerCommand('ethFaucet.quickSend', async (accountItem) => {
+            let address = '';
+            if (accountItem && accountItem.fullAddress) {
+                address = accountItem.fullAddress;
+            }
+            if (!address || !ethers_1.ethers.isAddress(address)) {
+                vscode.window.showErrorMessage('Invalid address for quick send');
+                return;
+            }
+            const amount = await vscode.window.showInputBox({
+                prompt: `Quick send to ${address.slice(0, 6)}...${address.slice(-4)}`,
+                placeHolder: '1.0',
+                value: '1.0',
+                validateInput: (value) => {
+                    const num = parseFloat(value);
+                    if (isNaN(num) || num <= 0 || num > 10) {
+                        return 'Please enter a valid amount between 0.1 and 10 ETH';
+                    }
+                    return null;
+                }
+            });
+            if (!amount) {
+                return;
+            }
+            await sendEthTransaction(address, amount, address);
         })
     ];
     // Send ETH transaction function
-    async function sendEthTransaction(recipient, amount) {
+    async function sendEthTransaction(targetAddress, amount, originalRecipient) {
         try {
+            console.log(`DEBUG: sendEthTransaction called with targetAddress: ${targetAddress}, amount: ${amount}, originalRecipient: ${originalRecipient}`);
+            // Validate that targetAddress is a proper address (not ENS name)
+            if (!ethers_1.ethers.isAddress(targetAddress)) {
+                throw new Error(`Invalid target address format: ${targetAddress}`);
+            }
+            if (targetAddress.endsWith('.eth')) {
+                throw new Error(`ENS name passed to transaction function: ${targetAddress}. This should have been resolved first.`);
+            }
             const config = vscode.workspace.getConfiguration('ethFaucet');
             const rpcUrl = config.get('rpcUrl', 'http://127.0.0.1:8545');
-            vscode.window.showInformationMessage(`Sending ${amount} ETH to ${recipient}...`);
+            const displayName = originalRecipient || targetAddress;
+            vscode.window.showInformationMessage(`Sending ${amount} ETH to ${displayName}...`);
             const provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl);
-            // Resolve ENS if needed
-            let targetAddress = recipient;
-            if (recipient.endsWith('.eth')) {
-                // Use mainnet for ENS resolution
-                const mainnetProvider = new ethers_1.ethers.JsonRpcProvider('https://cloudflare-eth.com');
-                const resolved = await mainnetProvider.resolveName(recipient);
-                if (!resolved) {
-                    throw new Error(`Could not resolve ENS name: ${recipient}`);
-                }
-                targetAddress = resolved;
-                vscode.window.showInformationMessage(`✅ ENS resolved: ${recipient} → ${targetAddress.slice(0, 6)}...${targetAddress.slice(-4)}`);
-            }
             const signer = await provider.getSigner(0);
+            console.log(`DEBUG: About to send transaction to ${targetAddress} with amount ${amount} ETH`);
             const tx = await signer.sendTransaction({
                 to: targetAddress,
                 value: ethers_1.ethers.parseEther(amount)
             });
-            vscode.window.showInformationMessage(`🚀 Transaction sent! Hash: ${tx.hash.slice(0, 10)}...`);
+            vscode.window.showInformationMessage(`Transaction sent! Hash: ${tx.hash.slice(0, 10)}...`);
             const receipt = await tx.wait();
             if (receipt && receipt.status === 1) {
-                vscode.window.showInformationMessage(`✅ Transaction confirmed! Sent ${amount} ETH to ${recipient}`);
+                vscode.window.showInformationMessage(`Transaction confirmed! Sent ${amount} ETH to ${displayName}`);
                 // Add to transaction history
                 historyProvider.addTransaction(tx.hash, targetAddress, amount, 'success');
                 // Add to frequent addresses if not already there
@@ -437,7 +561,7 @@ function activate(context) {
                 if (!frequentAddresses.find(addr => addr.address.toLowerCase() === targetAddress.toLowerCase())) {
                     frequentAddresses.push({
                         address: targetAddress,
-                        label: recipient.endsWith('.eth') ? recipient : ''
+                        label: originalRecipient && originalRecipient.endsWith('.eth') ? originalRecipient : ''
                     });
                     await config.update('frequentAddresses', frequentAddresses, vscode.ConfigurationTarget.Workspace);
                 }
@@ -445,16 +569,16 @@ function activate(context) {
                 accountsProvider.refresh();
             }
             else {
-                vscode.window.showErrorMessage('❌ Transaction failed');
+                vscode.window.showErrorMessage('Transaction failed');
                 historyProvider.addTransaction(tx.hash, targetAddress, amount, 'failed');
             }
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`❌ Transaction failed: ${errorMessage}`);
+            vscode.window.showErrorMessage(`Transaction failed: ${errorMessage}`);
             // Add failed transaction to history if we have the details
-            if (recipient && amount) {
-                historyProvider.addTransaction('failed', recipient, amount, 'failed');
+            if (targetAddress && amount) {
+                historyProvider.addTransaction('failed', targetAddress, amount, 'failed');
             }
         }
     }
