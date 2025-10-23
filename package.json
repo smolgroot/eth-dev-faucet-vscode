@@ -37,6 +37,11 @@
         "title": "Refresh"
       },
       {
+        "command": "ethFaucet.refreshConnection",
+        "title": "Refresh Connection",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "ethFaucet.clearHistory",
         "title": "Clear History",
         "icon": "$(trash)"
@@ -103,6 +108,11 @@
         {
           "command": "ethFaucet.clearHistory",
           "when": "view == ethFaucet.history",
+          "group": "navigation"
+        },
+        {
+          "command": "ethFaucet.refreshConnection",
+          "when": "view == ethFaucet.connection",
           "group": "navigation"
         },
         {

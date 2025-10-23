@@ -656,6 +656,16 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`Provider transactions count: ${currentTransactions.length}`);
         }),
 
+        vscode.commands.registerCommand('ethFaucet.refreshConnection', () => {
+            connectionProvider.refresh();
+            vscode.window.showInformationMessage('Connection status refreshed');
+        })
+    ];
+
+    context.subscriptions.push(...commands);
+
+    // Additional commands that need to be outside the array for scope reasons
+    context.subscriptions.push(
         vscode.commands.registerCommand('ethFaucet.editRpcUrl', async () => {
             const config = vscode.workspace.getConfiguration('ethFaucet');
             const currentRpcUrl = config.get('rpcUrl', 'http://localhost:8545');
@@ -686,7 +696,7 @@ export function activate(context: vscode.ExtensionContext) {
                 accountsProvider.refresh();
             }
         })
-    ];
+    );
 
     // Send ETH transaction function
     async function sendEthTransaction(targetAddress: string, amount: string, originalRecipient?: string) {
