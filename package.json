@@ -2,7 +2,7 @@
   "name": "eth-dev-faucet",
   "displayName": "ETH Dev Faucet",
   "description": "Ethereum faucet for local development nodes (geth, hardhat, anvil)",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "smolgroot",
   "repository": {
     "type": "git",
@@ -32,7 +32,7 @@
         "icon": "$(send)"
       },
       {
-        "command": "ethFaucet.refresh", 
+        "command": "ethFaucet.refresh",
         "title": "Refresh"
       },
       {
@@ -44,6 +44,27 @@
         "command": "ethFaucet.quickSend",
         "title": "Quick Send 1 ETH",
         "icon": "$(send)"
+      },
+      {
+        "command": "ethFaucet.editRpcUrl",
+        "title": "Edit RPC Endpoint",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "ethFaucet.debugHistory",
+        "title": "Debug History Data"
+      },
+      {
+        "command": "ethFaucet.addTestTransaction",
+        "title": "Add Test Transaction"
+      },
+      {
+        "command": "ethFaucet.debugGlobalState",
+        "title": "Debug Global State"
+      },
+      {
+        "command": "ethFaucet.resetGlobalState",
+        "title": "Reset Global State"
       }
     ],
     "viewsContainers": {
@@ -60,7 +81,7 @@
         {
           "id": "ethFaucet.connection",
           "name": "Connection",
-          "when": "true", 
+          "when": "true",
           "icon": "$(debug-disconnect)"
         },
         {
@@ -94,6 +115,11 @@
           "command": "ethFaucet.clearHistory",
           "when": "view == ethFaucet.history",
           "group": "navigation"
+        },
+        {
+          "command": "ethFaucet.editRpcUrl",
+          "when": "view == ethFaucet.connection",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -105,11 +131,22 @@
       ]
     }
   },
+  "configuration": {
+    "title": "ETH Dev Faucet",
+    "properties": {
+      "ethFaucet.rpcUrl": {
+        "type": "string",
+        "default": "http://localhost:8545",
+        "description": "RPC endpoint URL for the Ethereum node"
+      }
+    }
+  },
   "scripts": {
     "compile": "tsc -p ./",
     "package": "npm run compile && vsce package"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/vscode": "^1.74.0",
     "typescript": "^5.9.3"

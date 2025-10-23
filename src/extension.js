@@ -59,7 +59,7 @@ class ConnectionProvider {
     async testConnection() {
         try {
             const config = vscode.workspace.getConfiguration('ethFaucet');
-            this.rpcUrl = config.get('rpcUrl', 'http://127.0.0.1:8545');
+            this.rpcUrl = config.get('rpcUrl', 'http://localhost:8545');
             const provider = new ethers_1.ethers.JsonRpcProvider(this.rpcUrl);
             const network = await Promise.race([
                 provider.getNetwork(),
@@ -144,7 +144,7 @@ class AccountsProvider {
     async loadAccounts() {
         try {
             const config = vscode.workspace.getConfiguration('ethFaucet');
-            const rpcUrl = config.get('rpcUrl', 'http://127.0.0.1:8545');
+            const rpcUrl = config.get('rpcUrl', 'http://localhost:8545');
             const provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl);
             // Get first few accounts from the provider
             const accountAddresses = await provider.listAccounts();
@@ -300,7 +300,16 @@ class HistoryProvider {
     }
     loadHistory() {
         const saved = this.context.globalState.get('ethFaucet.history', []);
-        this.transactions = saved;
+        console.log('Loading history from globalState:', saved);
+        // Validate and filter valid transactions
+        this.transactions = saved.filter(tx => tx &&
+            typeof tx === 'object' &&
+            tx.hash &&
+            tx.to &&
+            tx.amount &&
+            tx.timestamp &&
+            (tx.status === 'success' || tx.status === 'failed'));
+        console.log('Loaded valid transactions:', this.transactions.length);
         vscode.commands.executeCommand('setContext', 'ethFaucet.hasHistory', this.transactions.length > 0);
     }
     saveHistory() {
@@ -313,16 +322,26 @@ class HistoryProvider {
         vscode.commands.executeCommand('setContext', 'ethFaucet.hasHistory', false);
         vscode.window.showInformationMessage('Transaction history cleared');
     }
+    refresh() {
+        this.loadHistory();
+        this._onDidChangeTreeData.fire();
+    }
+    getTransactions() {
+        return this.transactions;
+    }
     getTreeItem(element) {
         return element;
     }
     getChildren(element) {
+        console.log('HistoryProvider getChildren called, transactions count:', this.transactions.length);
         if (!element) {
-            return Promise.resolve(this.transactions.map(tx => {
+            const items = this.transactions.map(tx => {
                 const date = new Date(tx.timestamp).toLocaleDateString();
                 const time = new Date(tx.timestamp).toLocaleTimeString();
                 return new HistoryItem(`${tx.amount} ETH`, `to ${tx.to.slice(0, 6)}...${tx.to.slice(-4)} • ${date} ${time}`, tx.hash, vscode.TreeItemCollapsibleState.None, tx.status === 'success' ? 'check' : 'error');
-            }));
+            });
+            console.log('Returning history items:', items.length);
+            return Promise.resolve(items);
         }
         return Promise.resolve([]);
     }
@@ -405,36 +424,12 @@ function activate(context) {
         vscode.commands.executeCommand('setContext', 'workspaceHasEthereumConfig', hasConfig);
         vscode.commands.executeCommand('setContext', 'ethFaucet.forceShow', true);
     });
-    // ENS Resolution Function
-    async function resolveENSName(ensName) {
-        // For ENS resolution, we MUST use mainnet - ENS contracts don't exist on local networks
-        const providers = [
-            'https://cloudflare-eth.com',
-            'https://eth.llamarpc.com',
-            'https://1rpc.io/eth'
-        ];
-        for (const providerUrl of providers) {
-            try {
-                const mainnetProvider = new ethers_1.ethers.JsonRpcProvider(providerUrl);
-                // Test connection and resolve ENS name
-                await mainnetProvider.getNetwork(); // Test connection
-                const resolved = await mainnetProvider.resolveName(ensName);
-                if (resolved) {
-                    return resolved;
-                }
-            }
-            catch (error) {
-                console.log(`ENS Provider ${providerUrl} failed, trying next...`, error);
-                continue;
-            }
-        }
-        throw new Error(`Could not resolve ENS name: ${ensName}. Make sure you have internet connectivity for ENS resolution.`);
-    }
     // Register commands
     const commands = [
         vscode.commands.registerCommand('ethFaucet.refresh', () => {
             connectionProvider.refresh();
             accountsProvider.refresh();
+            historyProvider.refresh();
         }),
         vscode.commands.registerCommand('ethFaucet.clearHistory', () => {
             historyProvider.clearHistory();
@@ -442,39 +437,19 @@ function activate(context) {
         }),
         vscode.commands.registerCommand('ethFaucet.sendEth', async () => {
             const recipient = await vscode.window.showInputBox({
-                prompt: 'Enter recipient address or ENS name',
-                placeHolder: '0x742d35Cc6634C0532925a3b8D62B8bDD65b9b22d or vitalik.eth'
+                prompt: 'Enter recipient address',
+                placeHolder: '0x742d35Cc6634C0532925a3b8D62B8bDD65b9b22d'
             });
             if (!recipient) {
                 return;
             }
-            // Resolve ENS name first if needed
-            let targetAddress = recipient;
-            if (recipient.endsWith('.eth')) {
-                try {
-                    vscode.window.showInformationMessage(`Resolving ENS name: ${recipient}...`);
-                    targetAddress = await resolveENSName(recipient);
-                    // Validate that we got a proper address
-                    if (!ethers_1.ethers.isAddress(targetAddress)) {
-                        throw new Error(`ENS resolution returned invalid address: ${targetAddress}`);
-                    }
-                    vscode.window.showInformationMessage(`ENS resolved: ${recipient} → ${targetAddress.slice(0, 6)}...${targetAddress.slice(-4)}`);
-                    console.log(`DEBUG: ENS resolved ${recipient} to ${targetAddress}`);
-                }
-                catch (error) {
-                    vscode.window.showErrorMessage(`ENS Resolution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                    return;
-                }
-            }
-            else {
-                // Validate regular address
-                if (!ethers_1.ethers.isAddress(recipient)) {
-                    vscode.window.showErrorMessage('❌ Invalid Ethereum address format');
-                    return;
-                }
+            // Validate address format
+            if (!ethers_1.ethers.isAddress(recipient)) {
+                vscode.window.showErrorMessage('❌ Invalid Ethereum address format');
+                return;
             }
             const amount = await vscode.window.showInputBox({
-                prompt: `Enter amount in ETH (sending to ${recipient !== targetAddress ? recipient : targetAddress.slice(0, 6) + '...' + targetAddress.slice(-4)})`,
+                prompt: `Enter amount in ETH (sending to ${recipient.slice(0, 6) + '...' + recipient.slice(-4)})`,
                 placeHolder: '1.0',
                 validateInput: (value) => {
                     const num = parseFloat(value);
@@ -487,7 +462,7 @@ function activate(context) {
             if (!amount) {
                 return;
             }
-            await sendEthTransaction(targetAddress, amount, recipient);
+            await sendEthTransaction(recipient, amount, recipient);
         }),
         vscode.commands.registerCommand('ethFaucet.copyAddress', (address) => {
             vscode.env.clipboard.writeText(address);
@@ -495,11 +470,6 @@ function activate(context) {
         }),
         vscode.commands.registerCommand('ethFaucet.openSettings', () => {
             vscode.commands.executeCommand('workbench.action.openSettings', 'ethFaucet');
-        }),
-        vscode.commands.registerCommand('ethFaucet.clearHistory', () => {
-            historyProvider.clearHistory();
-            // Refresh accounts to update used addresses list
-            accountsProvider.refresh();
         }),
         vscode.commands.registerCommand('ethFaucet.quickSend', async (accountItem) => {
             let address = '';
@@ -526,30 +496,91 @@ function activate(context) {
                 return;
             }
             await sendEthTransaction(address, amount, address);
+        }),
+        // Debug command to inspect stored history
+        vscode.commands.registerCommand('ethFaucet.debugHistory', async () => {
+            const saved = context.globalState.get('ethFaucet.history', []);
+            console.log('Debug - Raw stored history:', saved);
+            vscode.window.showInformationMessage(`Stored transactions: ${JSON.stringify(saved, null, 2)}`);
+            // Also show what's currently in the provider
+            const currentTransactions = historyProvider.getTransactions();
+            console.log('Debug - Current provider transactions:', currentTransactions);
+            vscode.window.showInformationMessage(`Provider transactions count: ${currentTransactions.length}`);
+        }),
+        // Debug command to add a test transaction
+        vscode.commands.registerCommand('ethFaucet.addTestTransaction', () => {
+            historyProvider.addTransaction('0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', '0x742d35Cc6634C0532925a3b8D62B8bDD65b9b22d', '1.0', 'success');
+            vscode.window.showInformationMessage('Test transaction added to history');
+        }),
+        // Debug command to check all global state keys
+        vscode.commands.registerCommand('ethFaucet.debugGlobalState', async () => {
+            const keys = context.globalState.keys();
+            console.log('All global state keys:', keys);
+            vscode.window.showInformationMessage(`Global state keys: ${JSON.stringify(keys)}`);
+            // Check for any history-related keys
+            const historyKeys = keys.filter(key => key.includes('history') || key.includes('transaction') || key.includes('ethFaucet'));
+            console.log('History-related keys:', historyKeys);
+            for (const key of historyKeys) {
+                const value = context.globalState.get(key);
+                console.log(`Key ${key}:`, value);
+            }
+        }),
+        // Debug command to reset global state
+        vscode.commands.registerCommand('ethFaucet.resetGlobalState', async () => {
+            await context.globalState.update('ethFaucet.history', undefined);
+            vscode.window.showInformationMessage('Global state reset. Restart extension to see changes.');
+            historyProvider.refresh();
+        }),
+        vscode.commands.registerCommand('ethFaucet.editRpcUrl', async () => {
+            const config = vscode.workspace.getConfiguration('ethFaucet');
+            const currentRpcUrl = config.get('rpcUrl', 'http://localhost:8545');
+            const newRpcUrl = await vscode.window.showInputBox({
+                prompt: 'Enter RPC endpoint URL',
+                placeHolder: 'http://localhost:8545',
+                value: currentRpcUrl,
+                validateInput: (value) => {
+                    if (!value) {
+                        return 'RPC URL cannot be empty';
+                    }
+                    try {
+                        new URL(value);
+                        return null;
+                    }
+                    catch {
+                        return 'Please enter a valid URL (e.g., http://localhost:8545)';
+                    }
+                }
+            });
+            if (newRpcUrl && newRpcUrl !== currentRpcUrl) {
+                await config.update('rpcUrl', newRpcUrl, vscode.ConfigurationTarget.Workspace);
+                vscode.window.showInformationMessage(`RPC endpoint updated to: ${newRpcUrl}`);
+                // Refresh connection to test the new URL
+                connectionProvider.refresh();
+                accountsProvider.refresh();
+            }
         })
     ];
     // Send ETH transaction function
     async function sendEthTransaction(targetAddress, amount, originalRecipient) {
         try {
-            console.log(`DEBUG: sendEthTransaction called with targetAddress: ${targetAddress}, amount: ${amount}, originalRecipient: ${originalRecipient}`);
-            // Validate that targetAddress is a proper address (not ENS name)
+            // Validate that targetAddress is a proper address
             if (!ethers_1.ethers.isAddress(targetAddress)) {
                 throw new Error(`Invalid target address format: ${targetAddress}`);
             }
-            if (targetAddress.endsWith('.eth')) {
-                throw new Error(`ENS name passed to transaction function: ${targetAddress}. This should have been resolved first.`);
-            }
             const config = vscode.workspace.getConfiguration('ethFaucet');
-            const rpcUrl = config.get('rpcUrl', 'http://127.0.0.1:8545');
+            const rpcUrl = config.get('rpcUrl', 'http://localhost:8545');
             const displayName = originalRecipient || targetAddress;
             vscode.window.showInformationMessage(`Sending ${amount} ETH to ${displayName}...`);
             const provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl);
             const signer = await provider.getSigner(0);
-            console.log(`DEBUG: About to send transaction to ${targetAddress} with amount ${amount} ETH`);
-            const tx = await signer.sendTransaction({
-                to: targetAddress,
+            // Convert to checksummed address
+            const checksummedAddress = ethers_1.ethers.getAddress(targetAddress);
+            // Create transaction
+            const txParams = {
+                to: checksummedAddress,
                 value: ethers_1.ethers.parseEther(amount)
-            });
+            };
+            const tx = await signer.sendTransaction(txParams);
             vscode.window.showInformationMessage(`Transaction sent! Hash: ${tx.hash.slice(0, 10)}...`);
             const receipt = await tx.wait();
             if (receipt && receipt.status === 1) {
@@ -561,7 +592,7 @@ function activate(context) {
                 if (!frequentAddresses.find(addr => addr.address.toLowerCase() === targetAddress.toLowerCase())) {
                     frequentAddresses.push({
                         address: targetAddress,
-                        label: originalRecipient && originalRecipient.endsWith('.eth') ? originalRecipient : ''
+                        label: ''
                     });
                     await config.update('frequentAddresses', frequentAddresses, vscode.ConfigurationTarget.Workspace);
                 }
