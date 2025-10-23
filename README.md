@@ -2,6 +2,8 @@
 
 This VS Code extension provides a convenient faucet interface for Ethereum development directly in your editor sidebar.
 
+https://github.com/user-attachments/assets/bb7908de-2bee-47bc-8af2-b1da5c163a78
+
 ## Features
 
 * **Local Node Connection** - Connects to local Ethereum development nodes
