@@ -2,7 +2,7 @@
   "name": "eth-dev-faucet",
   "displayName": "ETH Dev Faucet",
   "description": "Ethereum faucet for local development nodes (geth, hardhat, anvil)",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "smolgroot",
   "repository": {
     "type": "git",
@@ -68,16 +68,16 @@
     "views": {
       "ethFaucet": [
         {
-          "id": "ethFaucet.connection",
-          "name": "Connection",
-          "when": "true",
-          "icon": "$(debug-disconnect)"
-        },
-        {
           "id": "ethFaucet.faucet",
           "name": "Faucet",
           "when": "true",
           "icon": "$(send)"
+        },
+        {
+          "id": "ethFaucet.connection",
+          "name": "Connection",
+          "when": "true",
+          "icon": "$(debug-disconnect)"
         },
         {
           "id": "ethFaucet.accounts",
@@ -112,6 +112,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "ethFaucet.sendEth",
+          "when": "view == ethFaucet.faucet && viewItem == sendButton",
+          "group": "inline"
+        },
         {
           "command": "ethFaucet.quickSend",
           "when": "view == ethFaucet.accounts && viewItem == usedAddress",

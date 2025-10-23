@@ -252,6 +252,18 @@ class FaucetProvider implements vscode.TreeDataProvider<FaucetItem> {
             const frequentAddresses = config.get('frequentAddresses', []) as Array<{address: string, label: string}>;
             
             const items: FaucetItem[] = [
+                // Big blue Send ETH button
+                new FaucetItem(
+                    '💧 Send ETH',
+                    'Send test ETH to any address',
+                    vscode.TreeItemCollapsibleState.None,
+                    {
+                        command: 'ethFaucet.sendEth',
+                        title: 'Send ETH',
+                        arguments: []
+                    },
+                    'sendButton'
+                ),
                 new FaucetItem(
                     'Amount Range',
                     '0.1 - 10 ETH per transaction',
@@ -320,7 +332,11 @@ class FaucetItem extends vscode.TreeItem {
         this.tooltip = this.description;
         this.command = command;
         this.contextValue = contextValue;
-        if (iconId) {
+        
+        // Special styling for the Send ETH button
+        if (contextValue === 'sendButton') {
+            this.iconPath = new vscode.ThemeIcon('send', new vscode.ThemeColor('button.background'));
+        } else if (iconId) {
             this.iconPath = new vscode.ThemeIcon(iconId);
         }
     }
