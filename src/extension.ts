@@ -151,7 +151,9 @@ class AccountsProvider implements vscode.TreeDataProvider<AccountItem> {
                     balance: ethers.formatEther(balance)
                 });
             }
+            console.log('Loaded local accounts:', this.accounts.length);
         } catch (error) {
+            console.log('Failed to load local accounts:', error);
             this.accounts = [];
         }
     }
@@ -181,6 +183,7 @@ class AccountsProvider implements vscode.TreeDataProvider<AccountItem> {
             
             // Add used addresses from transaction history
             const history = this.context.globalState.get('ethFaucet.history', []) as Array<any>;
+            console.log('AccountsProvider: Loading history with', history.length, 'transactions');
             const usedAddresses = new Set<string>();
             
             history.forEach((tx: any) => {
@@ -188,6 +191,8 @@ class AccountsProvider implements vscode.TreeDataProvider<AccountItem> {
                     usedAddresses.add(tx.to);
                 }
             });
+            
+            console.log('AccountsProvider: Found', usedAddresses.size, 'unique used addresses');
             
             if (usedAddresses.size > 0) {
                 items.push(new AccountItem('Recently Used', '', '', vscode.TreeItemCollapsibleState.None, 'separator', 'history'));
@@ -201,6 +206,18 @@ class AccountsProvider implements vscode.TreeDataProvider<AccountItem> {
                         'send'
                     ));
                 });
+            }
+            
+            // Add helpful message if no accounts or history
+            if (items.length === 0) {
+                items.push(new AccountItem(
+                    'No accounts found',
+                    'Start a local blockchain or send transactions to see addresses here',
+                    '',
+                    vscode.TreeItemCollapsibleState.None,
+                    'info',
+                    'info'
+                ));
             }
             
             return Promise.resolve(items);
@@ -348,9 +365,14 @@ class HistoryProvider implements vscode.TreeDataProvider<HistoryItem> {
     readonly onDidChangeTreeData: vscode.Event<HistoryItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
     private transactions: Array<{hash: string, to: string, amount: string, timestamp: number, status: 'success' | 'failed'}> = [];
+    private accountsProvider?: AccountsProvider;
 
     constructor(private context: vscode.ExtensionContext) {
         this.loadHistory();
+    }
+
+    setAccountsProvider(accountsProvider: AccountsProvider) {
+        this.accountsProvider = accountsProvider;
     }
 
     addTransaction(hash: string, to: string, amount: string, status: 'success' | 'failed') {
@@ -366,6 +388,11 @@ class HistoryProvider implements vscode.TreeDataProvider<HistoryItem> {
         this.transactions = this.transactions.slice(0, 50);
         this.saveHistory();
         this._onDidChangeTreeData.fire();
+        
+        // Refresh accounts provider to show new addresses
+        if (this.accountsProvider) {
+            this.accountsProvider.refresh();
+        }
         
         // Update context to show history view
         vscode.commands.executeCommand('setContext', 'ethFaucet.hasHistory', this.transactions.length > 0);
@@ -505,12 +532,18 @@ export function activate(context: vscode.ExtensionContext) {
     const faucetProvider = new FaucetProvider();
     const historyProvider = new HistoryProvider(context);
     const accountsProvider = new AccountsProvider(context, historyProvider);
+    
+    // Link providers so history updates refresh accounts
+    historyProvider.setAccountsProvider(accountsProvider);
 
     // Register tree data providers
     vscode.window.registerTreeDataProvider('ethFaucet.connection', connectionProvider);
     vscode.window.registerTreeDataProvider('ethFaucet.accounts', accountsProvider);
     vscode.window.registerTreeDataProvider('ethFaucet.faucet', faucetProvider);
     vscode.window.registerTreeDataProvider('ethFaucet.history', historyProvider);
+
+    // Initial refresh to load data
+    accountsProvider.refresh();
 
     // Auto-detect blockchain configuration
     detectBlockchainConfig().then(hasConfig => {

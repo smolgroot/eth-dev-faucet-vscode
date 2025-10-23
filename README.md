@@ -2,7 +2,7 @@
 
 This VS Code extension provides a convenient faucet interface for Ethereum development directly in your editor sidebar.
 
-## ✨ Features
+## Features
 
 * **Local Node Connection** - Connects to local Ethereum development nodes
 * **Account Management** - Displays account balances and addresses
@@ -14,11 +14,11 @@ This VS Code extension provides a convenient faucet interface for Ethereum devel
 
 Perfect for **Hardhat**, **Foundry**, **Geth**, and other development workflows.
 
-## 🚀 Installation
+## Installation
 
 Install from the VS Code Extensions marketplace or load the VSIX file directly.
 
-## 📖 Usage
+## Usage
 
 1. **Open the Panel** - Open the ETH Faucet panel in the VS Code sidebar
 2. **Configure RPC** - Click the plug icon (🔌) in the Connection view to set your RPC endpoint (defaults to `localhost:8545`)
@@ -47,14 +47,14 @@ Install from the VS Code Extensions marketplace or load the VSIX file directly.
 - **Status Tracking** - Success/failure status for each transaction
 - **Address Management** - Recently used addresses for quick access
 
-## ⚙️ Configuration
+## Configuration
 
 The extension automatically detects blockchain projects and configures itself. You can manually adjust settings:
 
 - **RPC URL**: Set your preferred Ethereum node endpoint
 - **Frequent Addresses**: Manage commonly used development addresses
 
-## 🛠️ Supported Development Tools
+## Supported Development Tools
 
 - **Hardhat** - Local development node
 - **Foundry/Anvil** - Fast Ethereum testing framework
@@ -62,10 +62,10 @@ The extension automatically detects blockchain projects and configures itself. Y
 - **Ganache** - Personal blockchain for development
 - **Custom RPC** - Any Ethereum-compatible local node
 
-## 🔧 Development
+## Development
 
 Built for local Ethereum development - **not intended for mainnet use**.
 
-## 📄 License
+## License
 
 MIT License - see LICENSE.md for details.
