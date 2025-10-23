@@ -2,7 +2,7 @@
   "name": "eth-dev-faucet",
   "displayName": "ETH Dev Faucet",
   "description": "Ethereum faucet for local development nodes (geth, hardhat, anvil)",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "publisher": "smolgroot",
   "repository": {
     "type": "git",
@@ -11,6 +11,7 @@
   "engines": {
     "vscode": "^1.74.0"
   },
+  "icon": "icon.png",
   "categories": [
     "Other"
   ],
@@ -53,18 +54,6 @@
       {
         "command": "ethFaucet.debugHistory",
         "title": "Debug History Data"
-      },
-      {
-        "command": "ethFaucet.addTestTransaction",
-        "title": "Add Test Transaction"
-      },
-      {
-        "command": "ethFaucet.debugGlobalState",
-        "title": "Debug Global State"
-      },
-      {
-        "command": "ethFaucet.resetGlobalState",
-        "title": "Reset Global State"
       }
     ],
     "viewsContainers": {
@@ -85,16 +74,16 @@
           "icon": "$(debug-disconnect)"
         },
         {
-          "id": "ethFaucet.accounts",
-          "name": "Accounts",
-          "when": "true",
-          "icon": "$(accounts-view-bar-icon)"
-        },
-        {
           "id": "ethFaucet.faucet",
           "name": "Faucet",
           "when": "true",
           "icon": "$(send)"
+        },
+        {
+          "id": "ethFaucet.accounts",
+          "name": "Accounts",
+          "when": "true",
+          "icon": "$(accounts-view-bar-icon)"
         },
         {
           "id": "ethFaucet.history",
@@ -143,7 +132,8 @@
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "package": "npm run compile && vsce package"
+    "package": "npm run compile && vsce package",
+    "publish": "npm run compile && vsce publish"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

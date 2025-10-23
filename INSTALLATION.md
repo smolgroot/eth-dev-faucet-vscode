@@ -31,12 +31,17 @@ npm install -g @vscode/vsce
 # Install dependencies
 npm install
 
-# Build the extension
-npm run compile
+# Package the extension (compiles + creates .vsix)
+npm run package
 
-# Package as .vsix file
-vsce package
+# OR: Compile + publish directly to marketplace
+npm run publish
 ```
+
+**Available npm scripts:**
+- `npm run compile` - Compile TypeScript to JavaScript
+- `npm run package` - Compile + create .vsix file for local installation
+- `npm run publish` - Compile + publish directly to VS Code Marketplace
 
 This creates a `.vsix` file like `eth-dev-faucet-0.0.1.vsix`
 
@@ -77,11 +82,11 @@ npm install -g @vscode/vsce
 # 3. Install dependencies
 npm install
 
-# 4. Build and package
+# 4. Package the extension (compiles + creates .vsix)
 npm run package
 
 # 5. Install the generated .vsix file
-code --install-extension eth-dev-faucet-0.0.1.vsix
+code --install-extension eth-dev-faucet-0.1.4.vsix
 
 # 6. Restart VS Code
 ```
@@ -118,7 +123,7 @@ After installation, the extension will:
 - ✅ Connection status detection
 - ✅ Account balance display  
 - ✅ Send ETH functionality
-- ✅ ENS name resolution
 - ✅ Transaction history
+- ✅ RPC endpoint management
 - ✅ Frequent addresses
 - ✅ Workspace-specific settings

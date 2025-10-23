@@ -607,40 +607,6 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`Provider transactions count: ${currentTransactions.length}`);
         }),
 
-        // Debug command to add a test transaction
-        vscode.commands.registerCommand('ethFaucet.addTestTransaction', () => {
-            historyProvider.addTransaction(
-                '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-                '0x742d35Cc6634C0532925a3b8D62B8bDD65b9b22d',
-                '1.0',
-                'success'
-            );
-            vscode.window.showInformationMessage('Test transaction added to history');
-        }),
-
-        // Debug command to check all global state keys
-        vscode.commands.registerCommand('ethFaucet.debugGlobalState', async () => {
-            const keys = context.globalState.keys();
-            console.log('All global state keys:', keys);
-            vscode.window.showInformationMessage(`Global state keys: ${JSON.stringify(keys)}`);
-            
-            // Check for any history-related keys
-            const historyKeys = keys.filter(key => key.includes('history') || key.includes('transaction') || key.includes('ethFaucet'));
-            console.log('History-related keys:', historyKeys);
-            
-            for (const key of historyKeys) {
-                const value = context.globalState.get(key);
-                console.log(`Key ${key}:`, value);
-            }
-        }),
-
-        // Debug command to reset global state
-        vscode.commands.registerCommand('ethFaucet.resetGlobalState', async () => {
-            await context.globalState.update('ethFaucet.history', undefined);
-            vscode.window.showInformationMessage('Global state reset. Restart extension to see changes.');
-            historyProvider.refresh();
-        }),
-
         vscode.commands.registerCommand('ethFaucet.editRpcUrl', async () => {
             const config = vscode.workspace.getConfiguration('ethFaucet');
             const currentRpcUrl = config.get('rpcUrl', 'http://localhost:8545');
