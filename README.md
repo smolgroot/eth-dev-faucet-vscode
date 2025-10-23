@@ -2,7 +2,8 @@
 
 This VS Code extension provides a convenient faucet interface for Ethereum development directly in your editor sidebar.
 
-https://github.com/user-attachments/assets/bb7908de-2bee-47bc-8af2-b1da5c163a78
+https://github.com/user-attachments/assets/2d6522d0-76d6-4955-8f9b-9268389dbf3a
+
 
 ## Features
 
