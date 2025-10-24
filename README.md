@@ -1,9 +1,29 @@
-# 💧 ETH Dev Faucet Extension for VS Code
+<div align="center">
+  <img src="icon.png" alt="ETH Dev Faucet Logo" width="120" height="120">
+  
+  # 💧 ETH Dev Faucet Extension for VS Code
+  
+  [![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+  [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/smolgroot.eth-dev-faucet?color=blue&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+  [![Downloads](https://img.shields.io/visual-studio-marketplace/d/smolgroot.eth-dev-faucet?color=green)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+  [![Installs](https://img.shields.io/visual-studio-marketplace/i/smolgroot.eth-dev-faucet?color=green)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+  [![Rating](https://img.shields.io/visual-studio-marketplace/r/smolgroot.eth-dev-faucet?color=yellow)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+  [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
+  [![GitHub](https://img.shields.io/badge/GitHub-smolgroot%2Feth--dev--faucet--vscode-blue?logo=github)](https://github.com/smolgroot/eth-dev-faucet-vscode)
+</div>
+
+---
 
 This VS Code extension provides a convenient faucet interface for Ethereum development directly in your editor sidebar.
 
 https://github.com/user-attachments/assets/2d6522d0-76d6-4955-8f9b-9268389dbf3a
 
+## Quick Start
+
+1. **Install** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+2. **Open** the ETH Faucet panel in VS Code sidebar
+3. **Configure** your RPC endpoint (defaults to `localhost:8545`)
+4. **Send** test ETH to development addresses
 
 ## Features
 
@@ -14,12 +34,28 @@ https://github.com/user-attachments/assets/2d6522d0-76d6-4955-8f9b-9268389dbf3a
 * **RPC Endpoint Management** - Easy switching between different local nodes
 * **Auto-Detection** - Automatically detects blockchain configuration files
 * **Workspace Integration** - Workspace-specific RPC settings
+* **One-Click Refresh** - Update connection status instantly
 
 Perfect for **Hardhat**, **Foundry**, **Geth**, and other development workflows.
 
 ## Installation
 
-Install from the VS Code Extensions marketplace or load the VSIX file directly.
+### From VS Code Marketplace
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "ETH Dev Faucet"
+4. Click Install
+
+### From Command Line
+```bash
+code --install-extension smolgroot.eth-dev-faucet
+```
+
+### Manual Installation
+Download the latest `.vsix` file from [Releases](https://github.com/smolgroot/eth-dev-faucet-vscode/releases) and install via:
+```bash
+code --install-extension eth-dev-faucet-x.x.x.vsix
+```
 
 ## Usage
 
@@ -68,6 +104,20 @@ The extension automatically detects blockchain projects and configures itself. Y
 ## Development
 
 Built for local Ethereum development - **not intended for mainnet use**.
+
+## 📈 Extension Stats
+
+<div align="center">
+  
+[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/smolgroot.eth-dev-faucet?style=for-the-badge&color=4CAF50)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/smolgroot.eth-dev-faucet?style=for-the-badge&color=2196F3)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+[![Visual Studio Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/smolgroot.eth-dev-faucet?style=for-the-badge&color=FF9800)](https://marketplace.visualstudio.com/items?itemName=smolgroot.eth-dev-faucet)
+
+</div>
+
+## Contributing
+
+Found a bug or have a feature request? [Open an issue](https://github.com/smolgroot/eth-dev-faucet-vscode/issues) or submit a PR!
 
 ## License
 
